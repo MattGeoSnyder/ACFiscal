@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <form action="" method="POST">
+        {% for field in form if field.widget.input_type != 'hidden' %}
+            {{ form.hidden_tag() }}
+            {{ field.label }} {{field(accept='.csv')}}
+        {% endfor %}
+        <button>Upload</button>
+    </form>
+   
+{% endblock %}
