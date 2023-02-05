@@ -3,6 +3,8 @@ from forms import ACH_Credits
 from secret import app_secret_key
 from flask_debugtoolbar import DebugToolbarExtension
 from ach import process_ach
+import os
+import pdb
 
 
 
@@ -29,13 +31,11 @@ def list_ach_credits():
 def add_ach_credits():
     form = ACH_Credits()
     if form.validate_on_submit():
-        ach_credits = form.ACH_Credits.data
-        print(type(ach_credits))
-        # try: 
-        process_ach(ach_credits)
+        file_data = form.file.data
+        filename = file_data.filename
+        file_data.save(os.path.join(app.instance_path, 'ACH', 'ACHReport.csv'))
+        process_ach(filename)
         return redirect('/fiscal/ACH')
-        # except:
-            # return redirect('/fiscal/ACH/add')
             
     return render_template('ACH-add.html', form=form)
     

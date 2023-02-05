@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import FileField
+from flask_wtf.file import FileField, FileRequired
 from wtforms.validators import InputRequired
 
 class ACH_Credits(FlaskForm):
-    ACH_Credits = FileField('ACH Credits (must be .csv file)', validators=[InputRequired()])
+    file = FileField('ACH Credits (must be .csv file)')

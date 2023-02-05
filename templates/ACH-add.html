@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <form action="" method="POST">
+    <form action="" method="POST" enctype="multipart/form-data">
         {% for field in form if field.widget.input_type != 'hidden' %}
             {{ form.hidden_tag() }}
             {{ field.label }} {{field(accept='.csv')}}

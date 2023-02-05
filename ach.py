@@ -9,8 +9,9 @@ def is_vendor(dict):
         return True
 
 def process_ach(ach_file):
-    with open(ach_file) as ach:
-        reader = csv.DictReader(ach)
+    # print(f'*******************************This is your other print line {ach_file}')
+    with open(f'instance/ACH/{ach_file}', 'r') as f:
+        reader = csv.DictReader(f)
         for row in reader:
             if is_credit(row):
                 if is_vendor(row):
