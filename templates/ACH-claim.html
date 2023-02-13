@@ -1,10 +1,9 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<form action="/fiscal/ACH/claim" method="POST">
+
     <table class="table">
         <thead>
-            <td>Claim</td>
+            
             <td>Date</td>
             <td>Department</td>
             <td>Bank</td>
@@ -13,7 +12,6 @@
         </thead>
         {% for credit in ach_credits %}
             <tr>
-                <td><input type="checkbox" name="credit-id" value="{{credit.id}}"></td>
                 <td>{{credit.received}}</td>
                 <td>
                     {% if credit.department %}
@@ -26,13 +24,20 @@
                 <td>{{'${:,.2f}'.format(credit.amount)}}</td>
                 <td>{{credit.description}}</td>
             </tr>
+            
         {% endfor %}
+        <tr>
+            <td id="total" colspan="5">Total: {{'${:,.2f}'.format(total)}}</td>
+        </tr>
     </table>
-    <button disabled="true" id="claim">Claim</button>
-</form>
+    <form action="" method="POST" enctype="multipart/form-data">
+        {% for field in form if field.widget.input_type != 'hidden' %}
+            {{ form.hidden_tag() }}
+            {{ field.label }} {{field(class='form-control', accept='.xlsx, .pdf')}}
+        {% endfor %}
+        <button>Claim</button>
+    </form>
 
 {% endblock %}
 
-{% block script %}
-    <script src="{{ url_for('static', filename='script/ACH.js') }}"></script>
-{% endblock %}
+    
