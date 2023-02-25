@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% import 'ACH-navbar.html' as navbar %}
+
+{% block content %}
+{{navbar.include_ach_navbar(g.user, 3)}}
+<div class="container-fluid row mt-4 ps-5">
+  <h2>Claimed by:</h2>
+  <div class="col-12">
+    <h4>{{roc.user.get_full_name()}}</h4>
+  </div>
+  <div class="col-12">Department: {{roc.user.department.name}}</div>
+  <div class="col-12">E-mail: {{roc.user.email}}</div>
+</div>
+<div class="container-fluid">
+<h2 class="mt-5 mb-4 text-center">Credits Claimed</h2>
+<table class="table w-75 mx-auto">
+    <thead>
+        <td class="fw-bold">Date</td>
+        <td class="fw-bold">Department</td>
+        <td class="fw-bold">Bank</td>
+        <td class="fw-bold">Amount</td>
+        <td class="fw-bold">Description</td>
+    </thead>
+    <tbody>
+    {% for credit in roc.credits %}
+        <tr>
+            <td>
+                {{credit.received.strftime('%m/%d/%Y')}}</td>
+            <td>
+                {% if credit.department %}
+                    {{credit.department.name}}
+                {% else %}
+                    Unidentified
+                {% endif %}
+            </td>
+            <td>{{credit.fund}}</td>
+            <td>{{'${:,.2f}'.format(credit.amount)}}</td>
+            <td>{{credit.description}}</td>
+        </tr>
+    {% endfor %}
+    <tr>
+        <td id="total" colspan="5"><h5>Total: {{'${:,.2f}'.format(roc.amount)}}</h5></td>
+    </tr>
+    </tbody>
+</table>
+</div>
+<div class="container-fluid mt-5">
+  <h2 class="text-center">Documentation</h2>
+  <div class="container-fluid w-25 mx-auto row">
+    <label class="fw-bold col-12 mx-auto" for="">Download ROC: </label>
+    <a class="col-12 mx-auto" href='http://localhost:5000/instance/ROC/{{roc.filename}}' download>
+      {{roc.filename}}
+    </a>
+  </div>
+  <div class="container-fluid w-25 mx-auto row mt-2">
+    <label class="fw-bold col-12" for="">Download Supporting Documentation: </label>
+      {% for doc in roc.docs %}
+      <a class="col-12" href="http://localhost:5000/instance/SupportingDocs/{{doc.filename}}" download>
+        {{doc.filename}}
+      </a>
+      {% endfor %}
+  </div>
+</div>
+<div class="container-fluid mt-3">
+  <form class="row" action="/fiscal/ACH/book/{{roc.id}}" method="POST">
+      <button class="btn btn-success mx-auto col-2">Book ROC</button>
+  </form>
+</div>
+{% endblock %}

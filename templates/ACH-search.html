@@ -1,0 +1,17 @@
+{% macro include_search_form(search_form) %}
+
+<div class="container-fluid my-3">
+    <h3>Search</h3>
+    <form id="search-form" action="#" class="row">
+        {% for field in search_form if field.widget.input_type != 'hidden' %}
+            <div class="col-auto ">
+                {{ field.label }} {{ field(class="form-control search-value") }}
+            </div>
+        {% endfor %}
+        <div class="col-1 position-relative">
+            <button class="btn btn-primary position-absolute bottom-0">Search</button>
+        </div>
+    </form>
+</div>
+
+{% endmacro %}

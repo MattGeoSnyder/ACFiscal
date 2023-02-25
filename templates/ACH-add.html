@@ -1,13 +1,17 @@
 {% extends 'base.html' %}
 
-{% block content %}
+{% import 'ACH-navbar.html' as navbar %}
 
-    <form action="" method="POST" enctype="multipart/form-data">
-        {% for field in form if field.widget.input_type != 'hidden' %}
-            {{ form.hidden_tag() }}
-            {{ field.label }} {{field(class='form-control', accept='.csv')}}
-        {% endfor %}
-        <button>Upload</button>
-    </form>
-   
+{% block content %}
+    {{navbar.include_ach_navbar(g.user, 1)}}
+    <div class="container-sm">
+        <h2 class="mt-5 text-center">Upload Credits</h2>
+        <form class="w-50 row mx-auto mt-5" action="" method="POST" enctype="multipart/form-data">
+            {% for field in form if field.widget.input_type != 'hidden' %}
+                {{ form.hidden_tag() }}
+                {{ field.label(placeholder='Drag file here or browse') }} {{field(class='form-control mt-1 mb-3 col-12', accept='.csv')}}
+            {% endfor %}
+            <button class="btn btn-success col-2 mx-auto">Upload</button>
+        </form>
+    </div>
 {% endblock %}

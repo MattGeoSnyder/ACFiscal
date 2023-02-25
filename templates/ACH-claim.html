@@ -1,21 +1,28 @@
 {% extends 'base.html' %}
+
+{% import 'ACH-navbar.html' as navbar %}
+
 {% block content %}
 
-    <table class="table">
+{{ navbar.include_ach_navbar(g.user, 0) }}
+
+<div class="container-fluid">
+    <h2 class="text-center mt-5">Credits</h2>
+    <table class="table mt-3">
         <thead>
             
-            <td>Date</td>
-            <td>Department</td>
-            <td>Bank</td>
-            <td>Amount</td>
-            <td>Description</td>
+            <td class="fw-bold" >Received</td>
+            <td class="fw-bold" >Department</td>
+            <td class="fw-bold" >Bank</td>
+            <td class="fw-bold" >Amount</td>
+            <td class="fw-bold" >Description</td>
         </thead>
         {% for credit in ach_credits %}
             <tr>
                 <td>{{credit.received}}</td>
                 <td>
                     {% if credit.department %}
-                        {{credit.department}}
+                        {{credit.department.name }}
                     {% else %}
                         Unidentified
                     {% endif %}
@@ -27,17 +34,26 @@
             
         {% endfor %}
         <tr>
-            <td id="total" colspan="5">Total: {{'${:,.2f}'.format(total)}}</td>
+            <td class="fw-bold" id="total" colspan="5"><h5>Total: {{'${:,.2f}'.format(total)}}</h5></td>
         </tr>
     </table>
-    <form action="" method="POST" enctype="multipart/form-data">
+</div>
+<div class="container-sm">
+    <h2 class="text-center mt-5">Upload Documentation</h2>
+    <form class="w-50 row mx-auto mt-5" action="" method="POST" enctype="multipart/form-data">
+        <div class="container-fluid row">
+        <input type="hidden" name="amount"   value="{{total}}">
+        {% for credit in ach_credits %}
+            <input type="hidden" name="credit-id" value="{{credit.id}}">
+        {% endfor %}
         {% for field in form if field.widget.input_type != 'hidden' %}
             {{ form.hidden_tag() }}
-            {{ field.label }} {{field(class='form-control', accept='.xlsx, .pdf')}}
+            {{ field.label(class='fw-bold') }} {{field(class='form-control my-2 col-12', accept='.xlsx, .pdf')}}
         {% endfor %}
-        <button>Claim</button>
+        <button class="btn btn-primary col-4 mx-auto mt-3">Claim</button>
+        </div>
     </form>
-
+</div>
 {% endblock %}
 
     

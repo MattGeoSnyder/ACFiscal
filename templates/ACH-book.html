@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% import 'ACH-navbar.html' as navbar %}
+
+{% block content %}
+{{navbar.include_ach_navbar(g.user, 3)}}
+<div class="container-fluid">
+    <h2 class="text-center my-5">ROCs To Be Booked</h2>
+<table class="table">
+    <thead>
+        <td class="fw-bold">Claimed</td>
+        <td class="fw-bold">Department</td>
+        <td class="fw-bold">Amount</td>
+        <td class="fw-bold">ROC</td>
+    </thead>
+    <tbody>
+        {% for roc in rocs %}
+            <tr>
+                <td>{{roc.claimed}}</td>
+                <td>
+                    {% if roc.credits[0].department %} 
+                        {{roc.credits[0].department.name }}
+                    {% else %}
+                        Unidentfied
+                    {% endif %}
+                </td>
+                <td>{{'${:,.2f}'.format(roc.amount)}}</td>
+                <td><a id="filename" href="/fiscal/ACH/book/{{roc.id}}"> {{roc.filename}} </a></td>            
+            </tr>
+        {% endfor %}
+    
+    </tbody>
+</table>
+</div>
+{% endblock %}

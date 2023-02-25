@@ -1,0 +1,32 @@
+\c ACFiscal
+
+CREATE TABLE departments(
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+INSERT INTO departments 
+    (name)
+VALUES
+    ('Fiscal'),
+    ('Cage'),
+    ('Budget and Finance'),
+    ('Real Estate'),
+    ('Police'),
+    ('DHS'),
+    ('Human Resources'),
+    ('Health'),
+    ('Economic Development'),
+    ('Courts'),
+    ('Parks'),
+    ('Emergency Services'),
+    ('Medical Examiner''s'),
+    ('Jail'),
+    ('Tax'),
+    ('Kane'),
+    ('Special Tax'),
+    ('District Attorney''s Office' ), 
+    ('Sheriff''s');
+    
+
+

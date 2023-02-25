@@ -1,36 +1,30 @@
 {% extends 'base.html' %}
 
+{% import 'ACH-navbar.html' as navbar %}
+{% import 'ACH-search.html' as search %}
+
 {% block content %}
+{{navbar.include_ach_navbar(g.user, 0)}}
+{{search.include_search_form(search_form)}}
+
+<div class="container-fluid">
 <form action="/fiscal/ACH/claim" method="POST">
     <table class="table">
         <thead>
-            <td>Claim</td>
-            <td>Date</td>
+            <td><button class="btn btn-primary" disabled="true" id="claim">Claim</button></td>
+            <td>Received</td>
             <td>Department</td>
             <td>Bank</td>
             <td>Amount</td>
             <td>Description</td>
         </thead>
-        {% for credit in ach_credits %}
-            <tr>
-                <td><input type="checkbox" name="credit-id" value="{{credit.id}}"></td>
-                <td>{{credit.received}}</td>
-                <td>
-                    {% if credit.department %}
-                        {{credit.department}}
-                    {% else %}
-                        Unidentified
-                    {% endif %}
-                </td>
-                <td>{{credit.fund}}</td>
-                <td>{{'${:,.2f}'.format(credit.amount)}}</td>
-                <td>{{credit.description}}</td>
-            </tr>
-        {% endfor %}
-    </table>
-    <button disabled="true" id="claim">Claim</button>
-</form>
+        <tbody id="credit-content">
 
+        </tbody>
+    </table>
+    
+</form>
+</div>
 {% endblock %}
 
 {% block script %}
