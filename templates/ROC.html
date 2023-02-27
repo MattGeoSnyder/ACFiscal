@@ -52,18 +52,22 @@
       {{roc.filename}}
     </a>
   </div>
-  <div class="container-fluid w-25 mx-auto row mt-2">
-    <label class="fw-bold col-12" for="">Download Supporting Documentation: </label>
-      {% for doc in roc.docs %}
-      <a class="col-12" href="http://localhost:5000/instance/SupportingDocs/{{doc.filename}}" download>
-        {{doc.filename}}
-      </a>
-      {% endfor %}
+  {% if roc.docs %}
+    <div class="container-fluid w-25 mx-auto row mt-2">
+      <label class="fw-bold col-12" for="">Download Supporting Documentation: </label>
+        {% for doc in roc.docs %}
+        <a class="col-12" href="http://localhost:5000/instance/SupportingDocs/{{doc.filename}}" download>
+          {{doc.filename}}
+        </a>
+        {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% if not roc.booked %}
+  <div class="container-fluid mt-3">
+    <form class="row" action="/fiscal/ACH/book/{{roc.id}}" method="POST">
+        <button class="btn btn-success mx-auto col-2">Book ROC</button>
+    </form>
   </div>
-</div>
-<div class="container-fluid mt-3">
-  <form class="row" action="/fiscal/ACH/book/{{roc.id}}" method="POST">
-      <button class="btn btn-success mx-auto col-2">Book ROC</button>
-  </form>
-</div>
+{% endif %}
 {% endblock %}

@@ -33,9 +33,9 @@ class LoginForm(FlaskForm):
     email = StringField('Email')
     password = PasswordField('Password')
 
-class SearchForm(FlaskForm):
-    start_date = DateField('Start Date')
-    end_date = DateField('End Date')
+class UnclaimedCredits(FlaskForm):
+    rec_start_date = DateField('Start Date')
+    rec_end_date = DateField('End Date')
     department = SelectField('Department')
     bank = SelectField('Bank', choices=[('', 'All'),
                                         ('11151', '11151'),
@@ -45,4 +45,10 @@ class SearchForm(FlaskForm):
                                         ('11106', '11106'),
                                         ('11108', '11108')])
     amount = FloatField('Amount')
+    
+class AllCredits(UnclaimedCredits):
+    clm_start_date = DateField('Start Date')
+    clm_end_date = DateField('End Date')
+    book_start_date = DateField('Start Date')
+    book_end_date = DateField('End Date')
     

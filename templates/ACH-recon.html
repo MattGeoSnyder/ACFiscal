@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% import 'ACH-search.html' as search %}
+{% import 'ACH-navbar.html' as navbar %}
+
+{% block content %}
+{{navbar.include_ach_navbar(g.user, 2)}}
+<h2 class="text-center mt-3">Search ACH Credits</h3>
+<form id="search-form" class="mt-5" action="/fiscal/ACH/recon">
+<div class="container-md row mx-auto">
+    <input type="hidden" name="claimed" value="True" class="search-value">
+    <div class="col-12 my-3">
+      <div class="row justify-content-center">
+        <div class="col-2 position-relative">
+          <h4 class="position-absolute bottom-0">Received:</h4>  
+        </div>
+        <div class="col-3">
+          {{form.rec_start_date.label}} {{form.rec_start_date(class="form-control search-value")}}
+        </div>
+        <div class="col-3">
+          {{form.rec_end_date.label}} {{form.rec_end_date(class="form-control search-value")}}
+        </div>
+      </div>
+    </div>
+    <div class="col-12 my-3">
+      <div class="row justify-content-center">
+        <div class="col-2 position-relative">
+          <h4 class="position-absolute bottom-0">Claimed:</h4>  
+        </div>
+        <div class="col-3">
+          {{form.clm_start_date.label}} {{form.clm_start_date(class="form-control search-value")}}
+        </div>
+        <div class="col-3">
+          {{form.clm_end_date.label}} {{form.clm_end_date(class="form-control search-value")}}
+        </div>
+      </div>
+    </div>
+    <div class="col-12 my-3">
+      <div class="row justify-content-center">
+        <div class="col-2 position-relative">
+          <h4 class="position-absolute bottom-0">Booked:</h4>  
+        </div>
+        <div class="col-3">
+          {{form.book_start_date.label}} {{form.book_start_date(class="form-control search-value")}}
+        </div>
+        <div class="col-3">
+          {{form.book_end_date.label}} {{form.book_end_date(class="form-control search-value")}}
+        </div>
+      </div>
+    </div>
+    <div class="col-12 mt-3">
+      <div class="row justify-content-center">
+        <div class="col-3">
+          {{form.department.label}} {{form.department(class="form-control search-value")}}
+        </div>
+        <div class="col-2">
+          {{form.bank.label}} {{form.bank(class="form-control search-value")}}
+        </div>
+        <div class="col-2">
+          {{form.amount.label}} {{form.amount(class="form-control search-value")}}
+        </div>
+        <div class="col-1 position-relative">
+          <button class="btn btn-primary position-absolute bottom-0">Search</button>
+        </div>
+      </div>
+    </div>
+</div>
+</form>
+<div class="container-fluid mt-4">
+  <table class="table">
+    <thead>
+      <td class="fw-bold">Recieved</td>
+      <td class="fw-bold">Claimed</td>
+      <td class="fw-bold">Booked</td>
+      <td class="fw-bold">Bank</td>
+      <td class="fw-bold">Department</td>
+      <td class="fw-bold">Amount</td>
+      <td class="fw-bold">ROC</td>
+      <td class="fw-bold">Description</td>
+    </thead>
+    <tbody>
+      
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='script/recon.js') }}"></script>
+{% endblock %}

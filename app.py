@@ -1,5 +1,5 @@
 from flask import Flask, g, render_template, redirect, session, flash, request, send_from_directory
-from forms import ACH_Credits_Form, ROC_Form, SignupForm, LoginForm, SearchForm
+from forms import ACH_Credits_Form, ROC_Form, SignupForm, LoginForm, UnclaimedCredits, AllCredits
 from secret import app_secret_key
 from flask_debugtoolbar import DebugToolbarExtension
 from ach import process_ach
@@ -9,6 +9,7 @@ import pdb
 from datetime import date, datetime
 from urllib.parse import urlparse, parse_qs
 import json
+import requests
 
 USER_KEY = "curr_user"
 
@@ -25,6 +26,7 @@ connect_db(app)
 with app.app_context():
     db.create_all()
 
+
 @app.before_request
 def add_user_to_g():
 
@@ -33,33 +35,55 @@ def add_user_to_g():
     else:
         g.user = None
 
+
 def do_login(user):
     session[USER_KEY] = user.id
+
 
 def do_logout():
     if USER_KEY in session:
         del session[USER_KEY]
 
+
 @app.route('/api/search')
 def query_ach_credits():
-    q = ACH.query.outerjoin(ACH.department).filter(ACH.roc_id == None)
-    
+    q = ACH.query.outerjoin(ACH.department).outerjoin(ACH.roc)
+
     qs = urlparse(request.url).query
     params = parse_qs(qs, keep_blank_values=True)
-    booked = params.get('booked', [''])[0]
-    selected = json.loads(params.get('selected', [])[0])
-    start_date = params.get('start_date', [''])[0]
-    end_date = params.get('end_date', [''])[0]
+    claimed = params.get('claimed', [''])[0]
+    selected = json.loads(params.get('selected', ['[]'])[0])
+    rec_start_date = params.get('rec_start_date', [''])[0]
+    rec_end_date = params.get('rec_end_date', [''])[0]
+    clm_start_date = params.get('clm_start_date', [''])[0]
+    clm_end_date = params.get('clm_end_date', [''])[0]
+    book_start_date = params.get('book_start_date', [''])[0]
+    book_end_date = params.get('book_end_date', [''])[0]
     department = params.get('department', [''])[0]
     bank = params.get('bank', [''])[0]
     amount = params.get('amount', [''])[0]
     ret = []
-    if start_date:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        q = q.filter(ACH.received >= start_date)
-    if end_date:
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
-        q = q.filter(ACH.received <= end_date)
+
+    if not claimed:
+        q = q.filter(ACH.roc_id == None)
+    if rec_start_date:
+        rec_start_date = datetime.strptime(rec_start_date, '%Y-%m-%d')
+        q = q.filter(ACH.received >= rec_start_date)
+    if rec_end_date:
+        rec_end_date = datetime.strptime(rec_end_date, '%Y-%m-%d')
+        q = q.filter(ACH.received <= rec_end_date)
+    if clm_start_date:
+        clm_start_date = datetime.strptime(clm_start_date, '%Y-%m-%d')
+        q = q.filter(ROC.claimed >= clm_start_date)
+    if clm_end_date:
+        clm_end_date = datetime.strptime(clm_end_date, '%Y-%m-%d')
+        q = q.filter(ROC.claimed <= clm_end_date)
+    if book_start_date:
+        book_start_date = datetime.strptime(book_start_date, '%Y-%m-%d')
+        q = q.filter(ROC.booked >= book_start_date)
+    if book_end_date:
+        book_end_date = datetime.strptime(book_end_date, '%Y-%m-%d')
+        q = q.filter(ROC.booked <= book_end_date)
     if department:
         dep_id = int(department)
         q = q.filter(Department.id == dep_id)
@@ -72,38 +96,55 @@ def query_ach_credits():
         q = q.filter(ACH.amount <= upper_bound)
     if selected:
         q = q.filter(ACH.id.not_in(selected))
-    q = q.order_by(ACH.received.desc(), ACH.fund.desc(), ACH.amount.desc(), Department.name)
+
+    q = q.order_by(ACH.received.desc(), ACH.fund.desc(),
+                   ACH.amount.desc(), Department.name)
+
+    if claimed:
+        q = q.limit(50)
     for credit in q.all():
         cred_dict = {
-                        'id': credit.id,
-                        'received': credit.received.strftime('%m/%d/%Y'),
-                        'department': credit.department.name if credit.department else 'Unidentified',
-                        'bank': credit.fund,
-                        'amount': '${:,.2f}'.format(credit.amount),
-                        'description': credit.description
+            'id': credit.id,
+            'received': credit.received.strftime('%m/%d/%Y'),
+            'department': credit.department.name if credit.department else 'Unidentified',
+            'claimed': credit.roc.claimed.strftime('%m/%d/%Y') if credit.roc else 'Unclaimed',
+            'bank': credit.fund,
+            'amount': '${:,.2f}'.format(credit.amount),
+            'description': credit.description,
+            'roc': {'id': credit.roc.id if credit.roc else '',
+                    'filename': credit.roc.filename if credit.roc else ''
                     }
+        }
+        if credit.roc:
+            cred_dict['booked'] = credit.roc.booked.strftime(
+                '%m/%d/%Y') if credit.roc.booked else 'Unbooked'
+        else:
+            cred_dict['booked'] = 'Unbooked'
         ret.append(cred_dict)
-    return json.dumps({ 'credits': ret })
-
+    return json.dumps({'credits': ret})
 
 
 @app.route('/')
-def go_to_fiscal(): 
-    return redirect('/fiscal/ACH')
+def go_to_fiscal():
+    return redirect('/signup')
+
 
 @app.route('/fiscal')
 def get_homepage():
-    return render_template('base.html')
+    return redirect('/fiscal/ACH')
+
 
 @app.route('/fiscal/ACH')
 def list_ach_credits():
-    search_form = SearchForm()
-    search_form.department.choices = [(dep.id, dep.name) for dep in Department.query.order_by(Department.name)]
-    search_form.department.choices.insert(0,("", 'All'))
+    search_form = UnclaimedCredits()
+    search_form.department.choices = [
+        (dep.id, dep.name) for dep in Department.query.order_by(Department.name)]
+    search_form.department.choices.insert(0, ("", 'All'))
     # q = query_unclaimed_ach_credits(params)
     # ach_credits = q.order_by(ACH.received, ACH.fund.desc(), ACH.amount.desc(), Department.name).all()
 
     return render_template('ACH.html', search_form=search_form)
+
 
 @app.route('/fiscal/ACH/add', methods=['GET', 'POST'])
 def add_ach_credits():
@@ -114,14 +155,15 @@ def add_ach_credits():
         file_data.save(os.path.join(app.instance_path, 'ACH', filename))
         process_ach(filename)
         return redirect('/fiscal/ACH')
-            
+
     return render_template('ACH-add.html', form=form)
+
 
 @app.route('/fiscal/ACH/claim', methods=['POST'])
 def claim_ach_credits():
     form = ROC_Form()
     claimed_credits = request.form.getlist('credit-id')
-    credit_ids = [ int(credit) for credit in claimed_credits ]
+    credit_ids = [int(credit) for credit in claimed_credits]
     ach_credits = ACH.query.filter(ACH.id.in_(credit_ids)).all()
     total = 0
     for credit in ach_credits:
@@ -133,12 +175,13 @@ def claim_ach_credits():
         roc_data = form.roc.data.read()
         roc_filename = form.roc.data.filename
         roc_amount = float(request.form['amount'])
-        roc = ROC(roc=roc_data, filename=roc_filename, claimed=date.today(), amount=roc_amount)
+        roc = ROC(roc=roc_data, filename=roc_filename,
+                  claimed=date.today(), amount=roc_amount)
         roc.user = g.user
         db.session.add(roc)
 
         claimed_credits = request.form.getlist('credit-id')
-        credit_ids = [ int(credit) for credit in claimed_credits ]
+        credit_ids = [int(credit) for credit in claimed_credits]
         ach_credits = ACH.query.filter(ACH.id.in_(credit_ids)).all()
 
         for credit in ach_credits:
@@ -156,12 +199,16 @@ def claim_ach_credits():
         db.session.commit()
         return redirect('/fiscal/ACH')
 
-    return render_template('ACH-claim.html', form=form, ach_credits=ach_credits,total=total)
+    return render_template('ACH-claim.html', form=form, ach_credits=ach_credits, total=total)
+
 
 @app.route('/fiscal/ACH/book')
 def book_ach_credits():
-    rocs = ROC.query.filter(ROC.booked == None).order_by(ROC.claimed.desc()).all()
+    rocs = ROC.query.filter(ROC.booked == None).order_by(
+        ROC.claimed.desc()).all()
+    # pdb.set_trace()
     return render_template('ACH-book.html', rocs=rocs)
+
 
 @app.route('/fiscal/ACH/book/<int:roc_id>')
 def get_roc(roc_id):
@@ -171,14 +218,16 @@ def get_roc(roc_id):
     f = open(path, "wb")
     f.write(data)
     f.close()
-    if roc.docs[0].filename:
+    if roc.docs:
         for doc in roc.docs:
-            path = os.path.join(app.instance_path, 'SupportingDocs', doc.filename)
+            path = os.path.join(app.instance_path,
+                                'SupportingDocs', doc.filename)
             data = doc.doc
             f = open(path, "wb")
             f.write(data)
             f.close()
     return render_template('ROC.html', roc=roc, path=path)
+
 
 @app.route('/fiscal/ACH/book/<int:roc_id>', methods=['POST'])
 def book_roc(roc_id):
@@ -187,31 +236,45 @@ def book_roc(roc_id):
     db.session.commit()
     return redirect('/fiscal/ACH/book')
 
+
 @app.route('/instance/ROC/<path:filename>')
 def download_file(filename):
     path = os.path.join(app.root_path, 'instance/ROC')
     return send_from_directory(path, filename, as_attachment=True)
+
 
 @app.route('/instance/SupportingDocs/<path:filename>')
 def download_doc(filename):
     path = os.path.join(app.root_path, 'instance/SupportingDocs')
     return send_from_directory(path, filename, as_attachment=True)
 
+
+@app.route('/fiscal/ACH/recon')
+def recon():
+    form = AllCredits()
+    form.department.choices = [
+        (dep.id, dep.name) for dep in Department.query.order_by(Department.name).all()]
+    form.department.choices.insert(0, ("", "All"))
+    return render_template('ACH-recon.html', form=form)
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     form = SignupForm()
-    form.department.choices = [(dep.id, dep.name) for dep in Department.query.order_by(Department.name)]
+    form.department.choices = [(dep.id, dep.name)
+                               for dep in Department.query.order_by(Department.name)]
     if form.validate_on_submit():
-        user = User.signup(form.first_name.data, 
-                            form.last_name.data,
-                            form.email.data.lower(),
-                            form.password.data,
-                            form.department.data)
+        user = User.signup(form.first_name.data,
+                           form.last_name.data,
+                           form.email.data.lower(),
+                           form.password.data,
+                           form.department.data)
         db.session.add(user)
         db.session.commit()
         do_login(user)
-        return redirect('/')
+        return redirect('/fiscal/ACH')
     return render_template('signup.html', form=form)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -229,6 +292,7 @@ def login():
         # flash message here
 
     return render_template('login.html', form=form)
+
 
 @app.route('/logout')
 def logout():
