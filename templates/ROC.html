@@ -48,7 +48,7 @@
   <h2 class="text-center">Documentation</h2>
   <div class="container-fluid w-25 mx-auto row">
     <label class="fw-bold col-12 mx-auto" for="">Download ROC: </label>
-    <a class="col-12 mx-auto" href='http://localhost:5000/instance/ROC/{{roc.filename}}' download>
+    <a class="col-12 mx-auto" href='http://localhost:5000/api/ROC/{{roc.id}}/download' download>
       {{roc.filename}}
     </a>
   </div>
@@ -56,7 +56,7 @@
     <div class="container-fluid w-25 mx-auto row mt-2">
       <label class="fw-bold col-12" for="">Download Supporting Documentation: </label>
         {% for doc in roc.docs %}
-        <a class="col-12" href="http://localhost:5000/instance/SupportingDocs/{{doc.filename}}" download>
+        <a class="col-12" href="http://localhost:5000/api/SupportingDocs/{{doc.id}}/download" download>
           {{doc.filename}}
         </a>
         {% endfor %}

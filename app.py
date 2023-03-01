@@ -1,13 +1,14 @@
-from flask import Flask, g, render_template, redirect, session, flash, request, send_from_directory
+from flask import Flask, g, render_template, redirect, session, flash, request, send_from_directory, send_file
 from forms import ACH_Credits_Form, ROC_Form, SignupForm, LoginForm, UnclaimedCredits, AllCredits
 from secret import app_secret_key
 from flask_debugtoolbar import DebugToolbarExtension
 from ach import process_ach
 from models import db, connect_db, ACH, ROC, SupportingDoc, User, Department
-import os
-import pdb
 from datetime import date, datetime
 from urllib.parse import urlparse, parse_qs
+import os
+import io
+import pdb
 import json
 import requests
 
@@ -124,6 +125,24 @@ def query_ach_credits():
     return json.dumps({'credits': ret})
 
 
+@app.route('/api/ROC/<int:roc_id>/download')
+def download_roc(roc_id):
+    roc = ROC.query.get_or_404(roc_id)
+    file = io.BytesIO()
+    file.write(roc.roc)
+    file.seek(0)
+    return send_file(file, download_name=roc.filename, as_attachment=True)
+
+
+@app.route('/api/SupportingDocs/<int:doc_id>/download')
+def download_supporting_doc(doc_id):
+    doc = SupportingDoc.query.get_or_404(doc_id)
+    file = io.BytesIO()
+    file.write(doc.doc)
+    file.seek(0)
+    return send_file(file, download_name=doc.filename, as_attachment=True)
+
+
 @app.route('/')
 def go_to_fiscal():
     return redirect('/signup')
@@ -140,8 +159,6 @@ def list_ach_credits():
     search_form.department.choices = [
         (dep.id, dep.name) for dep in Department.query.order_by(Department.name)]
     search_form.department.choices.insert(0, ("", 'All'))
-    # q = query_unclaimed_ach_credits(params)
-    # ach_credits = q.order_by(ACH.received, ACH.fund.desc(), ACH.amount.desc(), Department.name).all()
 
     return render_template('ACH.html', search_form=search_form)
 
@@ -150,10 +167,9 @@ def list_ach_credits():
 def add_ach_credits():
     form = ACH_Credits_Form()
     if form.validate_on_submit():
-        file_data = form.file.data
-        filename = file_data.filename
-        file_data.save(os.path.join(app.instance_path, 'ACH', filename))
-        process_ach(filename)
+        data = form.file.data.read().decode('utf-8')
+        file = io.StringIO(data)
+        process_ach(file)
         return redirect('/fiscal/ACH')
 
     return render_template('ACH-add.html', form=form)
@@ -213,20 +229,7 @@ def book_ach_credits():
 @app.route('/fiscal/ACH/book/<int:roc_id>')
 def get_roc(roc_id):
     roc = ROC.query.get_or_404(roc_id)
-    data = roc.roc
-    path = os.path.join(app.instance_path, 'ROC', roc.filename)
-    f = open(path, "wb")
-    f.write(data)
-    f.close()
-    if roc.docs:
-        for doc in roc.docs:
-            path = os.path.join(app.instance_path,
-                                'SupportingDocs', doc.filename)
-            data = doc.doc
-            f = open(path, "wb")
-            f.write(data)
-            f.close()
-    return render_template('ROC.html', roc=roc, path=path)
+    return render_template('ROC.html', roc=roc)
 
 
 @app.route('/fiscal/ACH/book/<int:roc_id>', methods=['POST'])
@@ -235,18 +238,6 @@ def book_roc(roc_id):
     roc.booked = datetime.today()
     db.session.commit()
     return redirect('/fiscal/ACH/book')
-
-
-@app.route('/instance/ROC/<path:filename>')
-def download_file(filename):
-    path = os.path.join(app.root_path, 'instance/ROC')
-    return send_from_directory(path, filename, as_attachment=True)
-
-
-@app.route('/instance/SupportingDocs/<path:filename>')
-def download_doc(filename):
-    path = os.path.join(app.root_path, 'instance/SupportingDocs')
-    return send_from_directory(path, filename, as_attachment=True)
 
 
 @app.route('/fiscal/ACH/recon')
